@@ -6,9 +6,10 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
-from backend.app.core.database import get_db
+from backend.app.core.config import settings
+from backend.app.core.database import get_db, SessionLocal
 from backend.app.models.job import ReviewJob
-from backend.app.schemas.job import JobCreate, JobResponse, JobActionRequest, DashboardStats
+from backend.app.schemas.job import JobCreate, JobResponse, JobActionRequest, DashboardStats, HumanDecisionEnum
 from backend.app.agent.engine import DevSentinelAgent
 
 router = APIRouter()
@@ -23,19 +24,28 @@ def execute_agent_task(job_id: str, db_factory):
     finally:
         db.close()
 
+def _validate_allowed_path(path_str: str) -> Path:
+    p = Path(path_str).resolve()
+    # Check if path or its parent exists
+    if not p.exists() and not p.parent.exists():
+        raise HTTPException(status_code=400, detail=f"Target path does not exist: {path_str}")
+    return p
+
 @router.post("/jobs", response_model=JobResponse)
 def create_job(job_in: JobCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    target_path = _validate_allowed_path(job_in.repo_path)
+
     job = ReviewJob(
         repo_name=job_in.repo_name,
-        repo_path=job_in.repo_path,
+        repo_path=str(target_path),
         issue_description=job_in.issue_description,
-        status="PENDING"
+        status="PENDING",
+        verification_status="PENDING"
     )
     db.add(job)
     db.commit()
     db.refresh(job)
 
-    from backend.app.core.database import SessionLocal
     background_tasks.add_task(execute_agent_task, job.id, SessionLocal)
     return job.to_dict()
 
@@ -56,16 +66,41 @@ def handle_human_action(job_id: str, action: JobActionRequest, db: Session = Dep
     job = db.query(ReviewJob).filter(ReviewJob.id == job_id).first()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
-    
-    decision = action.decision.upper()
-    job.human_decision = decision
+
+    # P1 FIX: Enforce valid state transitions
+    if job.status not in ["AWAITING_REVIEW", "VERIFICATION_FAILED"]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot execute review action on job with status '{job.status}'. Job must be in 'AWAITING_REVIEW'."
+        )
+
+    decision = action.decision
+    job.human_decision = decision.value
     job.human_feedback = action.feedback or ""
-    
-    if decision == "APPROVED":
+
+    if decision == HumanDecisionEnum.APPROVED:
+        # P0 FIX: Apply candidate changes to the original working tree ONLY upon explicit approval!
+        if job.candidate_workspace_path and Path(job.candidate_workspace_path).exists():
+            cand_dir = Path(job.candidate_workspace_path)
+            orig_dir = Path(job.repo_path)
+            # Copy candidate modified files back into original repository
+            for p in cand_dir.rglob("*.py"):
+                rel = p.relative_to(cand_dir)
+                dest = orig_dir / rel
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(p, dest)
+            # Cleanup candidate workspace
+            shutil.rmtree(cand_dir, ignore_errors=True)
+
         job.status = "APPROVED"
-    elif decision == "REJECTED":
+
+    elif decision == HumanDecisionEnum.REJECTED:
+        # On rejection, discard candidate workspace. Original repository remains untouched.
+        if job.candidate_workspace_path and Path(job.candidate_workspace_path).exists():
+            shutil.rmtree(job.candidate_workspace_path, ignore_errors=True)
         job.status = "REJECTED"
-    elif decision == "REVISION_REQUESTED":
+
+    elif decision == HumanDecisionEnum.REVISION_REQUESTED:
         job.status = "REVISION_REQUESTED"
 
     db.commit()
@@ -78,7 +113,7 @@ def get_dashboard_stats(db: Session = Depends(get_db)):
     approved = db.query(ReviewJob).filter(ReviewJob.human_decision == "APPROVED").count()
     rejected = db.query(ReviewJob).filter(ReviewJob.human_decision == "REJECTED").count()
     pending = db.query(ReviewJob).filter(ReviewJob.status == "AWAITING_REVIEW").count()
-    
+
     acceptance_rate = round((approved / total * 100), 1) if total > 0 else 0.0
     total_cost = db.query(func.sum(ReviewJob.cost_usd)).scalar() or 0.0
     avg_sec = db.query(func.avg(ReviewJob.security_score)).scalar() or 0.0
@@ -95,21 +130,16 @@ def get_dashboard_stats(db: Session = Depends(get_db)):
 
 @router.post("/demo/seed", response_model=JobResponse)
 def seed_demo_job(background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
-    """
-    Sets up the sample Shure audio transcoder repository with intentional flaws
-    and launches an automated DevSentinel remediation job.
-    """
     base_dir = Path(__file__).resolve().parent.parent.parent.parent
     sample_dir = base_dir / "sample_repos" / "audio_transcoder"
     sample_dir.mkdir(parents=True, exist_ok=True)
     (sample_dir / "audio_transcoder").mkdir(parents=True, exist_ok=True)
     (sample_dir / "tests").mkdir(parents=True, exist_ok=True)
 
-    # Write intentional buggy audio parser
     (sample_dir / "audio_transcoder" / "__init__.py").write_text("", encoding="utf-8")
     (sample_dir / "audio_transcoder" / "parser.py").write_text('''"""
 Audio Metadata Parser & Transcoder Engine.
-VULNERABLE VERSION: Contains unchecked buffer bounds.
+VULNERABLE VERSION: Contains unchecked buffer bounds (CWE-120).
 """
 def parse_audio_metadata(header_bytes: bytes) -> dict:
     if len(header_bytes) < 12:
@@ -125,10 +155,9 @@ def parse_audio_metadata(header_bytes: bytes) -> dict:
     }
 ''', encoding="utf-8")
 
-    # Write intentional SQL injection vulnerability in db.py
     (sample_dir / "audio_transcoder" / "db.py").write_text('''"""
 Track Logging Database Module.
-VULNERABLE VERSION: Direct string formatting into SQL query.
+VULNERABLE VERSION: Unescaped string query interpolation (CWE-89).
 """
 import sqlite3
 
@@ -154,17 +183,16 @@ def log_track_event(title: str, duration: int) -> bool:
     return True
 ''', encoding="utf-8")
 
-    # Create the demo job
     job = ReviewJob(
         repo_name="Shure Audio DSP Transcoder",
         repo_path=str(sample_dir),
-        issue_description="CWE-120 Buffer Overrun in metadata parser and CWE-89 SQL Injection in track logging query. Generate unit tests, apply secure patches, and verify regression.",
-        status="PENDING"
+        issue_description="CWE-120 Buffer Overrun in metadata parser and CWE-89 SQL Injection in track logging query.",
+        status="PENDING",
+        verification_status="PENDING"
     )
     db.add(job)
     db.commit()
     db.refresh(job)
 
-    from backend.app.core.database import SessionLocal
     background_tasks.add_task(execute_agent_task, job.id, SessionLocal)
     return job.to_dict()

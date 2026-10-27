@@ -6,15 +6,15 @@ from backend.app.api.routes import router as api_router
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    description="Autonomous AI Software Engineering & CI/CD Review Platform with Human-in-the-Loop Controls",
-    version="1.0.0"
+    description="Autonomous AI Software Engineering & Controlled Remediation Platform with Human-in-the-Loop Review",
+    version="1.1.0"
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.CORS_ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -24,6 +24,6 @@ def on_startup():
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "app": settings.PROJECT_NAME, "version": "1.0.0"}
+    return {"status": "ok", "app": settings.PROJECT_NAME, "version": "1.1.0"}
 
 app.include_router(api_router, prefix=settings.API_PREFIX)

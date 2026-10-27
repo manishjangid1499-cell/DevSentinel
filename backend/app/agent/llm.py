@@ -1,7 +1,7 @@
 import os
 import json
 import logging
-from typing import Dict, Any, List
+from typing import Dict, Any, Optional
 import httpx
 from backend.app.core.config import settings
 
@@ -11,40 +11,53 @@ class LLMClient:
     def __init__(self):
         self.api_key = settings.LLM_API_KEY
         self.model = settings.LLM_MODEL
+        self.provider = settings.LLM_PROVIDER
 
     def is_configured(self) -> bool:
         return bool(self.api_key and len(self.api_key.strip()) > 5)
 
     def generate_analysis(self, repo_context: str, issue_description: str) -> Dict[str, Any]:
         """
-        Generate diagnostic thoughts, reproduction test code, and root-cause analysis.
+        Generates diagnostic defect summary, reproduction unit test, and targeted code fix.
         """
         if self.is_configured():
             try:
                 return self._call_real_llm(repo_context, issue_description)
             except Exception as e:
-                logger.warning(f"Real LLM call failed ({e}), falling back to intelligent heuristic engine.")
-        
-        return self._heuristic_analysis(repo_context, issue_description)
+                logger.warning(f"Real LLM request failed ({e}). Checking demo scenario fallback.")
+
+        # Check if the task matches the demo scenario
+        desc_lower = issue_description.lower()
+        is_audio_demo = any(k in desc_lower for k in ["audio", "transcoder", "buffer", "sql injection", "cwe-120", "cwe-89", "shure"])
+
+        if is_audio_demo:
+            return self._demo_fixture_analysis(repo_context, issue_description)
+        else:
+            raise RuntimeError(
+                "No active LLM provider configured and task does not match pre-packaged demo. "
+                "Please configure LLM_API_KEY in .env to process arbitrary repositories."
+            )
 
     def _call_real_llm(self, repo_context: str, issue_description: str) -> Dict[str, Any]:
-        prompt = f"""You are an autonomous AI software engineer specializing in debugging, testing, and security auditing.
+        prompt = f"""You are DevSentinel, an AI Software Engineering Agent specializing in code remediation and verification.
 Repository Context:
 {repo_context}
 
-Issue to Solve:
+Issue Requirements:
 {issue_description}
 
-Respond ONLY with valid JSON having the following keys:
-- "thought": A clear chain-of-thought explanation of the bug.
-- "reproduction_test": Python code for test_reproduce.py using pytest.
-- "fix_code": The corrected file content or replacement patch.
-- "target_file": The relative path of the file to fix.
-- "security_audit": Brief explanation of any vulnerability addressed.
-- "security_score": Integer 0-100 rating security after fix.
-- "maintainability_score": Integer 0-100 rating code maintainability.
+Respond ONLY with a valid JSON object with the following exact keys:
+- "defect_summary": Concise explanation of the defect and root cause.
+- "supporting_evidence": Specific file lines or stack trace patterns confirming the issue.
+- "reproduction_test": Python code for test_devsentinel_reproduce.py using pytest that fails before the fix.
+- "target_file": Relative path of the primary file to modify.
+- "fix_code": Full replacement content for the target file.
+- "secondary_target_file": (Optional) relative path for secondary file, or null.
+- "secondary_fix_code": (Optional) content for secondary file, or null.
+- "estimated_security_score": Integer 0-100 estimating security post-fix.
+- "estimated_maintainability_score": Integer 0-100 estimating maintainability post-fix.
+- "remaining_uncertainty": Any edge cases or limitations requiring human reviewer attention.
 """
-        # Call OpenAI / OpenAI-compatible endpoint
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
@@ -52,40 +65,53 @@ Respond ONLY with valid JSON having the following keys:
         payload = {
             "model": self.model,
             "messages": [
-                {"role": "system", "content": "You are DevSentinel, an AI code review and bug remediation agent."},
+                {"role": "system", "content": "You are DevSentinel, an autonomous code repair agent. Always return clean, strict JSON."},
                 {"role": "user", "content": prompt}
             ],
             "response_format": {"type": "json_object"},
-            "temperature": 0.2
+            "temperature": 0.1
         }
+
         with httpx.Client(timeout=45.0) as client:
             resp = client.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
             resp.raise_for_status()
             data = resp.json()
             content = data["choices"][0]["message"]["content"]
-            return json.loads(content)
+            result = json.loads(content)
+            result["provider_used"] = "openai"
+            result["model_used"] = self.model
+            result["execution_mode"] = "LIVE_LLM"
+            
+            # Approximate cost tracking
+            usage = data.get("usage", {})
+            prompt_tokens = usage.get("prompt_tokens", 0)
+            completion_tokens = usage.get("completion_tokens", 0)
+            result["measured_cost_usd"] = round((prompt_tokens * 0.000005) + (completion_tokens * 0.000015), 4)
+            return result
 
-    def _heuristic_analysis(self, repo_context: str, issue_description: str) -> Dict[str, Any]:
+    def _demo_fixture_analysis(self, repo_context: str, issue_description: str) -> Dict[str, Any]:
         """
-        Intelligent deterministic reasoning engine for instant live demonstration & offline CI test runs.
+        Deterministic verification fixture for the pre-configured Shure Audio DSP demo scenario.
+        Explicitly flagged as demo fixture.
         """
         return {
-            "thought": (
-                "Identified security vulnerability: user input directly interpolated into SQL query and unchecked buffer length in audio metadata chunk parser. "
-                "Synthesizing reproduction test to trigger IndexError and SQL injection payload."
+            "defect_summary": (
+                "Identified CWE-120 (unchecked buffer bounds in RIFF/WAVE chunk header parser) "
+                "and CWE-89 (unparameterized SQL query interpolation in track logging module)."
             ),
+            "supporting_evidence": "audio_transcoder/parser.py line 10 chunk_size check omitted; db.py line 20 uses f-string SQL query.",
             "reproduction_test": '''import pytest
 from audio_transcoder.parser import parse_audio_metadata
 from audio_transcoder.db import log_track_event
 
 def test_metadata_buffer_overflow_reproduction():
-    # Test oversized chunk header that triggers IndexError
+    # Oversized chunk header that must trigger ValueError when properly validated
     malformed_header = b"RIFF" + (99999).to_bytes(4, 'little') + b"WAVEfmt "
     with pytest.raises(ValueError, match="Chunk length exceeds buffer boundary"):
         parse_audio_metadata(malformed_header)
 
 def test_sql_injection_prevention():
-    # Test malicious track title with SQL injection payload
+    # Injection payload that must be safely escaped via parameterized query
     malicious_title = "Shure Mic Test'; DROP TABLE track_logs; --"
     res = log_track_event(malicious_title, duration=120)
     assert res == True, "Failed safe parameterized insert"
@@ -93,10 +119,8 @@ def test_sql_injection_prevention():
             "target_file": "audio_transcoder/parser.py",
             "fix_code": '''"""
 Audio Metadata Parser & Transcoder Engine.
-Patched by DevSentinel: Enforces strict buffer bounds and sanitized DB execution.
+Remediated by DevSentinel: Enforces strict byte buffer bounds checks.
 """
-import sqlite3
-
 def parse_audio_metadata(header_bytes: bytes) -> dict:
     if len(header_bytes) < 12:
         raise ValueError("Header too short")
@@ -105,7 +129,7 @@ def parse_audio_metadata(header_bytes: bytes) -> dict:
     chunk_size = int.from_bytes(header_bytes[4:8], "little")
     wave_format = header_bytes[8:12]
 
-    # Security fix: Validate chunk length against buffer bounds to avoid buffer overrun
+    # Boundary validation check (CWE-120 fix)
     if chunk_size > len(header_bytes):
         raise ValueError("Chunk length exceeds buffer boundary")
 
@@ -115,10 +139,10 @@ def parse_audio_metadata(header_bytes: bytes) -> dict:
         "valid": True
     }
 ''',
-            "db_target_file": "audio_transcoder/db.py",
-            "db_fix_code": '''"""
+            "secondary_target_file": "audio_transcoder/db.py",
+            "secondary_fix_code": '''"""
 Track Logging Database Module.
-Patched by DevSentinel: Converted raw string concatenation to secure parameterized queries.
+Remediated by DevSentinel: Parameterized query prevents SQL injection (CWE-89).
 """
 import sqlite3
 
@@ -136,13 +160,17 @@ def log_track_event(title: str, duration: int) -> bool:
     conn = sqlite3.connect(":memory:")
     init_db(conn)
     cursor = conn.cursor()
-    # Security fix: Use parameterized query (? placeholder) instead of f-string
+    # Parameterized SQL query execution
     cursor.execute("INSERT INTO track_logs (title, duration) VALUES (?, ?)", (title, duration))
     conn.commit()
     conn.close()
     return True
 ''',
-            "security_audit": "Resolved CWE-120 (Buffer Boundary Overrun) and CWE-89 (SQL Injection) via parameterized queries and explicit byte boundary assertions.",
-            "security_score": 96,
-            "maintainability_score": 92
+            "estimated_security_score": 96,
+            "estimated_maintainability_score": 92,
+            "remaining_uncertainty": "Assumes SQLite dialect. Verify production database driver compatibility if migrating to PostgreSQL.",
+            "provider_used": "deterministic-demo-fixture",
+            "model_used": "shure-audio-dsp-fixture",
+            "execution_mode": "DEMO_FIXTURE",
+            "measured_cost_usd": 0.0
         }

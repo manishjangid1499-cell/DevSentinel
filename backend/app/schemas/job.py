@@ -1,27 +1,39 @@
+from enum import Enum
 from typing import Optional, List, Any
 from pydantic import BaseModel, Field
 
+class HumanDecisionEnum(str, Enum):
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    REVISION_REQUESTED = "REVISION_REQUESTED"
+
 class JobCreate(BaseModel):
-    repo_name: str = Field(..., example="audio_transcoder")
-    repo_path: str = Field(..., example="sample_repos/audio_transcoder")
-    issue_description: str = Field(..., example="Fix buffer overflow in metadata parser and prevent SQL injection in track logging")
+    repo_name: str = Field(..., min_length=1, max_length=255)
+    repo_path: str = Field(..., min_length=1, max_length=1024)
+    issue_description: str = Field(..., min_length=5, max_length=4000)
 
 class JobActionRequest(BaseModel):
-    decision: str = Field(..., example="APPROVED") # APPROVED, REJECTED, REVISION_REQUESTED
-    feedback: Optional[str] = Field("", example="Looks good, clean patch and passes regression tests.")
+    decision: HumanDecisionEnum
+    feedback: Optional[str] = Field("", max_length=2000)
 
 class JobResponse(BaseModel):
     id: str
     repo_name: str
     repo_path: str
-    issue_description: str
     status: str
+    verification_status: str
+    execution_mode: str
+    provider_used: str
+    issue_description: str
     security_score: int
     maintainability_score: int
     cost_usd: float
     execution_time_seconds: float
+    baseline_exit_code: int
+    verification_exit_code: int
     test_output: str
     patch_diff: str
+    remaining_uncertainty: str
     trajectory: List[Any]
     human_decision: str
     human_feedback: str

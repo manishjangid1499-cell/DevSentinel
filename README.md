@@ -13,7 +13,7 @@
 <br/>
 
 <p align="center">
-  <strong>An end-to-end AI software engineering agent that diagnoses repository issues, synthesizes reproduction unit tests, applies surgical code patches in an isolated sandbox, and enforces strict Human-in-the-Loop (HITL) developer review.</strong>
+  <strong>An end-to-end AI software engineering agent that diagnoses repository issues, synthesizes reproduction unit tests, applies surgical code patches in an isolated candidate staging workspace, and enforces strict Human-in-the-Loop (HITL) developer review before touching the working tree.</strong>
 </p>
 
 ---
@@ -28,12 +28,13 @@
 
 ## 📌 Executive Summary
 
-Modern AI code generation models frequently hallucinate syntax errors, miss subtle edge cases, or introduce security regressions because they lack runtime feedback. 
+Modern AI code generation models frequently hallucinate syntax errors, miss subtle edge cases, or introduce security regressions because they lack runtime execution feedback.
 
 **DevSentinel** bridges the gap between raw LLMs and production engineering standards:
-1. **Ground-Truth Test Verification**: The agent never assumes a fix works. It writes an isolated unit test (`pytest`), observes the failure in an isolated sandbox, applies a patch, and re-executes tests until 100% passing.
-2. **Strict Human-in-the-Loop (HITL) Governance**: In accordance with responsible AI engineering best practices, DevSentinel never merges code autonomously. All patches, security scores, and execution traces are submitted to an interactive review dashboard where a human engineer retains final decision authority.
-3. **Cross-Platform Process Isolation**: Solves common subprocess zombie issues by enforcing process-group termination on POSIX and tree termination (`taskkill /F /T`) on Windows to prevent orphaned background processes.
+1. **Isolated Candidate Staging (Working Tree Protection)**: Candidate patches and reproduction tests are generated and executed strictly within a temporary staging copy of the repository. The original working tree and production branch remain **100% untouched** until an engineer explicitly clicks **Approve & Merge**.
+2. **Ground-Truth Process Exit Code Verification**: DevSentinel never substitutes invented pass counts or strings. It requires the synthesized reproduction test to fail initially (asserting non-zero exit code), and after patching, requires the entire test suite to pass with process exit code 0.
+3. **Environment Sanitization & Process-Tree Isolation**: Controlled runner strips host API keys, cloud credentials, and sensitive environment variables (`OPENAI_*`, `GEMINI_*`, `AWS_*`, `TOKEN`) before executing child test processes, with cross-platform tree termination (`taskkill /F /T` on Windows, `killpg` on POSIX).
+4. **Path Traversal Containment**: Every target path from model generation is canonicalized and verified against the workspace root, rejecting `../` directory escapes.
 
 ---
 
@@ -53,23 +54,28 @@ flowchart TD
 
     subgraph Agent ["Agentic AI Core Engine"]
         Engine["DevSentinel Multi-Stage Agent"]
-        LLM["LLM Gateway<br/>(LiteLLM / OpenAI / Gemini / Heuristic)"]
-        Sandbox["Cross-Platform Isolated Sandbox<br/>(Process Tree Termination)"]
+        LLM["LLM Gateway<br/>(OpenAI / Gemini / Offline Demo Fixture)"]
+        Sandbox["Controlled Sandbox Runner<br/>(Env Sanitization & Tree Kill)"]
     end
 
-    subgraph Workspace ["Target Codebase Workspace"]
-        Repo["Source Code (e.g., Audio DSP Engine)"]
+    subgraph Staging ["Isolated Candidate Staging Workspace"]
+        TempRepo["Staged Copy of Source Code"]
         Pytest["Synthesized Tests (pytest)"]
         Diff["Unified Git Diff"]
     end
 
+    subgraph Target ["Original Target Codebase"]
+        OriginalRepo["Original Source Code (Untouched until Approval)"]
+    end
+
     UI --> API
-    HITL --> API
+    HITL -->|"Approve & Merge"| API
+    API -->|"Apply Patched Files"| OriginalRepo
     API --> DB
     API --> Engine
     Engine --> LLM
     Engine --> Sandbox
-    Sandbox --> Repo
+    Sandbox --> TempRepo
     Sandbox --> Pytest
     Engine --> Diff
     Diff --> UI
@@ -84,12 +90,12 @@ flowchart TD
 ## 🚀 Core Engineering Capabilities
 
 ### 1. Multi-Stage Iterative Agentic Workflow
-Unlike basic single-prompt chatbots, DevSentinel runs an autonomous 5-stage engineering loop:
-- **Stage 1 (Reconnaissance)**: Scans source files, AST symbols, and configuration dependencies.
+Unlike single-prompt chatbots, DevSentinel runs an autonomous 5-stage engineering loop:
+- **Stage 1 (Reconnaissance)**: Scans candidate files, AST symbols, and test configurations.
 - **Stage 2 (Test Synthesis)**: Synthesizes a dedicated reproduction unit test (`test_devsentinel_reproduce.py`) asserting the bug before touching any source code.
-- **Stage 3 (Sandbox Baseline Execution)**: Executes the test in an isolated sandbox to record the failure trace and return code.
-- **Stage 4 (Surgical Remediation)**: Modifies only the vulnerable functions to resolve bugs (e.g. CWE-120 Buffer Overrun, CWE-89 SQL Injection).
-- **Stage 5 (Regression Verification)**: Re-runs the complete test suite in the sandbox to confirm zero regressions.
+- **Stage 3 (Baseline Execution)**: Executes `pytest` in isolation and verifies the defect manifests (non-zero process exit code).
+- **Stage 4 (Surgical Remediation)**: Modifies only the vulnerable functions in the isolated staging workspace.
+- **Stage 5 (Regression Verification)**: Re-runs the full test suite in the sandbox, verifying exit code 0.
 
 ### 2. Surgical Git Diff Viewer & Code Remediation
 Every patch is captured as a unified Git diff with syntax highlighting:
@@ -114,14 +120,14 @@ DevSentinel/
 ├── backend/
 │   ├── app/
 │   │   ├── agent/           # Agentic loop, sandbox runner, and LLM abstraction
-│   │   │   ├── engine.py    # Multi-stage agent loop
-│   │   │   ├── sandbox.py   # Isolated cross-platform process runner
-│   │   │   └── llm.py       # LLM provider with fallback heuristic engine
-│   │   ├── api/
-│   │   │   └── routes.py    # REST API endpoints (/api/jobs, /api/stats, /api/demo)
-│   │   ├── core/            # Config, database engine, settings
-│   │   ├── models/job.py    # SQLAlchemy ORM models (audit trails & metrics)
-│   │   └── schemas/job.py   # Pydantic request/response schemas
+│   │   │   ├── engine.py    # Multi-stage agent loop with candidate workspace isolation
+│   │   │   ├── sandbox.py   # Sanitized execution runner with process-tree termination
+│   │   │   └── llm.py       # LLM provider with explicit demo fixture mode
+│   │   ├── api/             # FastAPI REST endpoints
+│   │   │   └── routes.py    # Job dispatch, state-transition validation, and approval
+│   │   ├── core/            # Config, database engine, settings, CORS policy
+│   │   ├── models/job.py    # SQLAlchemy ORM models (verification status & audit trails)
+│   │   └── schemas/job.py   # Pydantic request/response schemas with Enum validation
 │   ├── tests/               # Backend Pytest test suite (100% passing)
 │   ├── Dockerfile           # Backend container definition
 │   └── requirements.txt     # Python dependencies
@@ -189,19 +195,19 @@ Access the application dashboard at `http://localhost:3000`.
 1. Open the dashboard at `http://localhost:5173`.
 2. Click **"Run Shure Audio Demo"** in the top-right header.
 3. DevSentinel will automatically:
-   - Mount the sample audio transcoder repository.
-   - Detect **CWE-120** (audio chunk buffer overrun) and **CWE-89** (SQL injection in track logger).
+   - Create an isolated staging copy of the sample audio transcoder repository.
+   - Detect **CWE-120** (buffer overrun) and **CWE-89** (SQL injection in track logger).
    - Synthesize a reproduction pytest suite.
-   - Execute the tests in the sandbox, inspect the failure, and apply a surgical parameterized fix.
-   - Re-verify tests (`2 passed in 0.04s`).
-   - Present the patch diff and security score (96/100) for **Human-in-the-Loop review**.
-4. Enter review notes and click **"Approve & Merge"** to simulate production sign-off.
+   - Execute tests in sandbox, verify non-zero failure exit code, and apply a surgical parameterized fix.
+   - Re-verify tests (verifying clean exit code 0).
+   - Present the patch diff and security score for **Human-in-the-Loop review**.
+4. Review the diff and click **"Approve & Merge"** to copy the verified fix into the primary repository.
 
 ---
 
 ## 📋 Running Automated Tests
 
-Run the backend unit, integration, and agent loop test suite:
+Run the backend unit, integration, and security test suite:
 
 ```bash
 # Set PYTHONPATH to project root:
