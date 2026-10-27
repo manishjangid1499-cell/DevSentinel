@@ -1,0 +1,165 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0b0f19"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+    <linearGradient id="brand-grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+  </defs>
+
+  <style>
+    text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+  </style>
+
+  <!-- Window Container -->
+  <rect x="20" y="20" width="1160" height="710" rx="12" fill="#0f172a" stroke="#334155" stroke-width="1.5" filter="url(#shadow)"/>
+
+  <!-- Window Titlebar -->
+  <path d="M 20 32 Q 20 20 32 20 L 1168 20 Q 1180 20 1180 32 L 1180 56 L 20 56 Z" fill="#1e293b"/>
+  <circle cx="44" cy="38" r="6" fill="#ef4444"/>
+  <circle cx="64" cy="38" r="6" fill="#f59e0b"/>
+  <circle cx="84" cy="38" r="6" fill="#10b981"/>
+  <text x="600" y="42" fill="#94a3b8" font-size="12" font-weight="600" text-anchor="middle">DevSentinel — Autonomous AI Software Engineering &amp; CI/CD Review Platform</text>
+
+  <!-- App Header -->
+  <rect x="20" y="56" width="1160" height="58" fill="#1e293b" stroke="#334155" stroke-width="0.5"/>
+  <rect x="40" y="68" width="34" height="34" rx="8" fill="url(#brand-grad)"/>
+  <text x="57" y="91" fill="#ffffff" font-size="16" font-weight="800" text-anchor="middle">DS</text>
+  
+  <text x="86" y="83" fill="#f8fafc" font-size="16" font-weight="700">DevSentinel</text>
+  <text x="86" y="97" fill="#64748b" font-size="11">Autonomous AI Software Engineering &amp; CI/CD Platform</text>
+
+  <!-- Header Buttons -->
+  <rect x="860" y="70" width="180" height="30" rx="6" fill="#334155"/>
+  <text x="950" y="89" fill="#f8fafc" font-size="12" font-weight="600" text-anchor="middle">▶ Run Shure Audio Demo</text>
+  <rect x="1052" y="70" width="108" height="30" rx="6" fill="#3b82f6"/>
+  <text x="1106" y="89" fill="#ffffff" font-size="12" font-weight="600" text-anchor="middle">+ New Task</text>
+
+  <!-- Metrics Bar -->
+  <rect x="20" y="114" width="1160" height="42" fill="#0b1120" stroke="#334155" stroke-width="0.5"/>
+  <text x="40" y="132" fill="#64748b" font-size="10" font-weight="700">TOTAL JOBS</text>
+  <text x="40" y="148" fill="#f8fafc" font-size="14" font-weight="700">12</text>
+
+  <text x="180" y="132" fill="#64748b" font-size="10" font-weight="700">HUMAN ACCEPTANCE</text>
+  <text x="180" y="148" fill="#10b981" font-size="14" font-weight="700">94.2%</text>
+
+  <text x="360" y="132" fill="#64748b" font-size="10" font-weight="700">AWAITING REVIEW</text>
+  <text x="360" y="148" fill="#f59e0b" font-size="14" font-weight="700">1</text>
+
+  <text x="520" y="132" fill="#64748b" font-size="10" font-weight="700">AVG SECURITY SCORE</text>
+  <text x="520" y="148" fill="#06b6d4" font-size="14" font-weight="700">96 / 100</text>
+
+  <text x="700" y="132" fill="#64748b" font-size="10" font-weight="700">TOTAL TOKEN SPEND</text>
+  <text x="700" y="148" fill="#f8fafc" font-size="14" font-weight="700">$0.142</text>
+
+  <!-- Left Sidebar (Jobs Pipeline) -->
+  <rect x="20" y="156" width="340" height="574" fill="#1e293b" stroke="#334155" stroke-width="0.5"/>
+  <text x="40" y="184" fill="#94a3b8" font-size="12" font-weight="700">AUDIT PIPELINE (3 TASKS)</text>
+
+  <!-- Card 1: Active Card -->
+  <rect x="36" y="200" width="308" height="110" rx="8" fill="#0f172a" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="48" y="222" fill="#f8fafc" font-size="13" font-weight="700">Shure Audio DSP Transcoder</text>
+  <rect x="236" y="210" width="98" height="18" rx="9" fill="rgba(245, 158, 11, 0.2)"/>
+  <text x="285" y="223" fill="#f59e0b" font-size="9" font-weight="700" text-anchor="middle">AWAITING REVIEW</text>
+  <text x="48" y="244" fill="#94a3b8" font-size="11">CWE-120 Buffer Overrun in parser &amp; CWE-89</text>
+  <text x="48" y="258" fill="#94a3b8" font-size="11">SQL Injection in track logging query...</text>
+  <line x1="48" y1="274" x2="332" y2="274" stroke="#334155" stroke-width="0.5"/>
+  <text x="48" y="292" fill="#10b981" font-size="11" font-weight="600">🛡️ Security: 96/100</text>
+  <text x="280" y="292" fill="#64748b" font-size="11">Cost: $0.024</text>
+
+  <!-- Card 2 -->
+  <rect x="36" y="322" width="308" height="96" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <text x="48" y="344" fill="#f8fafc" font-size="13" font-weight="600">FastAPI JWT Auth Service</text>
+  <rect x="254" y="332" width="80" height="18" rx="9" fill="rgba(16, 185, 129, 0.2)"/>
+  <text x="294" y="345" fill="#10b981" font-size="9" font-weight="700" text-anchor="middle">APPROVED</text>
+  <text x="48" y="366" fill="#94a3b8" font-size="11">Resolved expired token replay vulnerability</text>
+  <line x1="48" y1="384" x2="332" y2="384" stroke="#334155" stroke-width="0.5"/>
+  <text x="48" y="402" fill="#10b981" font-size="11" font-weight="600">🛡️ Security: 98/100</text>
+  <text x="280" y="402" fill="#64748b" font-size="11">Cost: $0.018</text>
+
+  <!-- Card 3 -->
+  <rect x="36" y="430" width="308" height="96" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <text x="48" y="452" fill="#f8fafc" font-size="13" font-weight="600">Telemetry Streamer</text>
+  <rect x="254" y="440" width="80" height="18" rx="9" fill="rgba(16, 185, 129, 0.2)"/>
+  <text x="294" y="453" fill="#10b981" font-size="9" font-weight="700" text-anchor="middle">APPROVED</text>
+  <text x="48" y="474" fill="#94a3b8" font-size="11">Off-by-one index crash on circular buffer</text>
+  <line x1="48" y1="492" x2="332" y2="492" stroke="#334155" stroke-width="0.5"/>
+  <text x="48" y="510" fill="#10b981" font-size="11" font-weight="600">🛡️ Security: 92/100</text>
+  <text x="280" y="510" fill="#64748b" font-size="11">Cost: $0.015</text>
+
+  <!-- Right Workspace -->
+  <rect x="360" y="156" width="820" height="504" fill="#0f172a"/>
+  
+  <!-- Workspace Header -->
+  <rect x="360" y="156" width="820" height="56" fill="#1e293b" stroke="#334155" stroke-width="0.5"/>
+  <text x="384" y="180" fill="#f8fafc" font-size="16" font-weight="700">Shure Audio DSP Transcoder</text>
+  <text x="384" y="198" fill="#94a3b8" font-size="11">Task ID: 8f3a9e12 • Status: <tspan fill="#06b6d4" font-weight="600">AWAITING REVIEW</tspan> • Runtime: 2.14s</text>
+  <rect x="1000" y="172" width="160" height="26" rx="6" fill="#0f172a" stroke="#10b981" stroke-width="1"/>
+  <text x="1080" y="189" fill="#10b981" font-size="11" font-weight="700" text-anchor="middle">🛡️ Security Score: 96/100</text>
+
+  <!-- Workspace Tabs -->
+  <rect x="360" y="212" width="820" height="38" fill="#1e293b" stroke="#334155" stroke-width="0.5"/>
+  <rect x="376" y="212" width="230" height="38" fill="#0f172a" stroke="#3b82f6" stroke-width="0" stroke-bottom="2"/>
+  <line x1="376" y1="249" x2="606" y2="249" stroke="#3b82f6" stroke-width="2"/>
+  <text x="491" y="236" fill="#3b82f6" font-size="12" font-weight="600" text-anchor="middle">Agent Trajectory (5 Steps)</text>
+  <text x="700" y="236" fill="#94a3b8" font-size="12" font-weight="600">Proposed Git Diff</text>
+  <text x="890" y="236" fill="#94a3b8" font-size="12" font-weight="600">Sandbox Test Logs</text>
+
+  <!-- Trajectory Step 1 -->
+  <circle cx="396" cy="276" r="12" fill="#1e293b" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="396" y="280" fill="#f8fafc" font-size="11" font-weight="700" text-anchor="middle">1</text>
+  <line x1="396" y1="290" x2="396" y2="350" stroke="#334155" stroke-width="1.5"/>
+
+  <rect x="420" y="262" width="736" height="74" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="434" y="280" fill="#06b6d4" font-size="10" font-weight="700">RECONNAISSANCE</text>
+  <text x="600" y="280" fill="#64748b" font-size="10">Action: list_files(pattern='*.py')</text>
+  <text x="434" y="298" fill="#f8fafc" font-size="11">Scanning repository structure and existing test conventions.</text>
+  <rect x="434" y="306" width="708" height="22" rx="4" fill="#0b1120"/>
+  <text x="444" y="321" fill="#38bdf8" font-size="10" class="mono">Discovered source files: audio_transcoder/parser.py, audio_transcoder/db.py</text>
+
+  <!-- Trajectory Step 2 -->
+  <circle cx="396" cy="366" r="12" fill="#1e293b" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="396" y="370" fill="#f8fafc" font-size="11" font-weight="700" text-anchor="middle">2</text>
+  <line x1="396" y1="380" x2="396" y2="440" stroke="#334155" stroke-width="1.5"/>
+
+  <rect x="420" y="352" width="736" height="74" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="434" y="370" fill="#06b6d4" font-size="10" font-weight="700">TEST_SYNTHESIS</text>
+  <text x="640" y="370" fill="#64748b" font-size="10">Action: create_file('tests/test_devsentinel_reproduce.py')</text>
+  <text x="434" y="388" fill="#f8fafc" font-size="11">Synthesized automated reproduction unit test asserting buffer boundary &amp; SQL injection.</text>
+  <rect x="434" y="396" width="708" height="22" rx="4" fill="#0b1120"/>
+  <text x="444" y="411" fill="#38bdf8" font-size="10" class="mono">Written reproduction test (17 lines) with malformed chunk header &amp; SQL payload.</text>
+
+  <!-- Trajectory Step 3 -->
+  <circle cx="396" cy="456" r="12" fill="#1e293b" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="396" y="460" fill="#f8fafc" font-size="11" font-weight="700" text-anchor="middle">3</text>
+  <line x1="396" y1="470" x2="396" y2="530" stroke="#334155" stroke-width="1.5"/>
+
+  <rect x="420" y="442" width="736" height="74" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="434" y="460" fill="#06b6d4" font-size="10" font-weight="700">CODE_REMEDIATION &amp; REGRESSION VERIFICATION</text>
+  <text x="760" y="460" fill="#64748b" font-size="10">Action: apply_patch() &amp; pytest -q</text>
+  <text x="434" y="478" fill="#f8fafc" font-size="11">Applied byte-boundary validation and parameterized SQL query. Verified in sandbox.</text>
+  <rect x="434" y="486" width="708" height="22" rx="4" fill="#0b1120"/>
+  <text x="444" y="501" fill="#4ade80" font-size="10" class="mono">✓ 2 passed in 0.04s [Sandbox Pytest: Zero Regressions Confirmed]</text>
+
+  <!-- Bottom Human-in-the-Loop Decision Drawer -->
+  <rect x="360" y="660" width="820" height="70" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  
+  <rect x="380" y="676" width="410" height="38" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <text x="396" y="700" fill="#94a3b8" font-size="12">Verified regression test suite and buffer bounds. Ready to merge.</text>
+
+  <rect x="804" y="676" width="144" height="38" rx="6" fill="#10b981"/>
+  <text x="876" y="700" fill="#ffffff" font-size="12" font-weight="700" text-anchor="middle">✓ Approve &amp; Merge</text>
+
+  <rect x="956" y="676" width="134" height="38" rx="6" fill="#f59e0b"/>
+  <text x="1023" y="700" fill="#ffffff" font-size="12" font-weight="700" text-anchor="middle">⚠ Request Revision</text>
+
+  <rect x="1098" y="676" width="70" height="38" rx="6" fill="#ef4444"/>
+  <text x="1133" y="700" fill="#ffffff" font-size="12" font-weight="700" text-anchor="middle">✗ Reject</text>
+</svg>

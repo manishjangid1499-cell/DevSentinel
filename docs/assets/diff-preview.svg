@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 480" width="100%" height="100%">
+  <defs>
+    <filter id="shadow-diff" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="6" stdDeviation="12" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+  <style>
+    text { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+  </style>
+
+  <!-- Container -->
+  <rect x="15" y="15" width="970" height="450" rx="10" fill="#0b1120" stroke="#334155" stroke-width="1.5" filter="url(#shadow-diff)"/>
+
+  <!-- Header -->
+  <rect x="15" y="15" width="970" height="42" rx="10" fill="#1e293b"/>
+  <circle cx="38" cy="36" r="5" fill="#ef4444"/>
+  <circle cx="54" cy="36" r="5" fill="#f59e0b"/>
+  <circle cx="70" cy="36" r="5" fill="#10b981"/>
+  <text x="100" y="40" fill="#94a3b8" font-size="12" font-weight="600">audio_transcoder/parser.py &amp; audio_transcoder/db.py (Surgical Security Patch)</text>
+
+  <!-- Diff Content -->
+  <g font-size="12" xml:space="preserve">
+    <text x="35" y="85" fill="#64748b">--- a/audio_transcoder/parser.py</text>
+    <text x="35" y="105" fill="#64748b">+++ b/audio_transcoder/parser.py</text>
+    <text x="35" y="125" fill="#38bdf8">@@ -8,6 +8,11 @@ def parse_audio_metadata(header_bytes: bytes) -&gt; dict:</text>
+    <text x="35" y="145" fill="#94a3b8">     riff = header_bytes[0:4]</text>
+    <text x="35" y="165" fill="#94a3b8">     chunk_size = int.from_bytes(header_bytes[4:8], "little")</text>
+    <text x="35" y="185" fill="#94a3b8">     wave_format = header_bytes[8:12]</text>
+    
+    <!-- Deletion -->
+    <rect x="30" y="196" width="940" height="20" fill="rgba(239, 68, 68, 0.15)"/>
+    <text x="35" y="210" fill="#f87171">-    # BUG: No bounds check on chunk_size vs len(header_bytes)</text>
+
+    <!-- Additions -->
+    <rect x="30" y="216" width="940" height="38" fill="rgba(16, 185, 129, 0.15)"/>
+    <text x="35" y="230" fill="#34d399">+    # Security fix: Validate chunk length against buffer bounds (CWE-120)</text>
+    <text x="35" y="248" fill="#34d399">+    if chunk_size &gt; len(header_bytes): raise ValueError("Chunk length exceeds buffer boundary")</text>
+
+    <text x="35" y="280" fill="#64748b">--- a/audio_transcoder/db.py</text>
+    <text x="35" y="300" fill="#64748b">+++ b/audio_transcoder/db.py</text>
+    <text x="35" y="320" fill="#38bdf8">@@ -15,7 +15,7 @@ def log_track_event(title: str, duration: int) -&gt; bool:</text>
+    
+    <!-- Deletion -->
+    <rect x="30" y="330" width="940" height="20" fill="rgba(239, 68, 68, 0.15)"/>
+    <text x="35" y="344" fill="#f87171">-    query = f"INSERT INTO track_logs (title, duration) VALUES ('{title}', {duration})"</text>
+
+    <!-- Additions -->
+    <rect x="30" y="350" width="940" height="38" fill="rgba(16, 185, 129, 0.15)"/>
+    <text x="35" y="364" fill="#34d399">+    # Security fix: Use parameterized query (? placeholder) to eliminate SQL Injection (CWE-89)</text>
+    <text x="35" y="382" fill="#34d399">+    cursor.execute("INSERT INTO track_logs (title, duration) VALUES (?, ?)", (title, duration))</text>
+
+    <text x="35" y="420" fill="#10b981">✓ All tests verified in isolated sandbox: 2 passed, 0 failed in 0.04s</text>
+  </g>
+</svg>
